@@ -24,8 +24,7 @@ Q#1. What are the majority of brand cars that are resold?
 Q#2. What is the average price per model?
 Q#3. What type of cars has the best/worst resale value?
 Q#4. Does the color of the car affect its resale?
-Q#5. Does the model of the car affect its resale?
-Q#6. Is there a correlation between car model year and price?
+Q#5. Is there a correlation between car model year and price?
 
 
 
