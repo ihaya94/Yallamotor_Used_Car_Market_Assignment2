@@ -1,0 +1,186 @@
+---
+title: "Drivers Group Project"
+format:
+    html:
+        code-fold: true
+jupyter: python3
+---
+## Author: (Alwaleed Alhazmi, Dhawi Almajnouni, Haya Aldawsari, Hassan Altamimi)
+ 
+# Table of content
+## Introduce the dataset
+## Data quality and data cleaning
+## Exploratory Data Analysis
+## Key investigations results from the data
+## Takeaways from the dataset backed by an external dataset
+ 
+# Introduction
+``` {python}
+print("Saudi Arabia used car market is projected to register robust growth during the forecast")
+print("period. The growth can be attributed to the increasing adoption of used cars for performing")
+print("daily activities and traveling long distances for adventure and relaxation purposes.")
+print("Used cars serve as a great alternative for low-income people.")
+ 
+```
+# Introduce the dataset
+## Dataset Description
+## The dataset was collected from Saudi Yallamotor.com by an alumni of the DSI program, Yousef AlOtaibi. The dataset contains 8715 entries and 12 variables.
+```{python}
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib as mlp
+import plotly.express as px
+%config InlineBackend.figure_format = 'retina'
+%matplotlib inline
+```
+```{python}
+df_1 = pd.read_csv("https://raw.githubusercontent.com/YousefAlotaibi/saudi_used_cars_price_prediciton/main/data/ScrapedData/cars_data.csv")
+df_2 = pd.read_csv("https://raw.githubusercontent.com/YousefAlotaibi/saudi_used_cars_price_prediciton/main/data/ScrapedData/cars_data2.csv")
+df_3 = pd.read_csv("https://raw.githubusercontent.com/YousefAlotaibi/saudi_used_cars_price_prediciton/main/data/ScrapedData/cars_data3.csv")
+df = pd.concat([df_1,df_2,df_3])
+df.head(5)
+```
+# Questions
+## Q#1. What are the majority of brand cars that are resold?
+## Q#2. What is the average price per model year?
+## Q#3. What type of cars has the best/worst resale value?
+## Q#4. Does the color of the car affect its resale?
+## Q#5. Is there a correlation between car model year and price?
+
+# Data quality and data cleaning
+## Removing new cars
+```{python}
+df = df[df["car_name"].str.contains("New") == False]
+```
+## Remove the duplicaions
+```{python}
+df.drop_duplicates(inplace=True)
+```
+## Split it into two new columns car_make and car_model
+```{python}
+df['car_make'] = df['car_name'].str.split(' ').str[1]
+df['car_model'] = df['car_name'].str.split(' ').str[2]
+```
+## Sorting the columns and removing the car_name column
+```{python}
+df = df[['car_make', 'car_model', 'model_year', 'km', 'transmission', 'fuel', 'color', 'no_doors', 'engine_capacity', 'drive_type', 'no_cylinders', 'Accident_history', 'price']]
+```
+## Fixing the car_make of Land Rover
+```{python}
+df['car_make'] = df['car_make'].str.replace('Land', 'Land Rover')
+```
+## Removing car_make with value count less than 5
+```{python}
+df = df.groupby('car_make').filter(lambda x : len(x)>4)
+```
+## Fixing drive_type values
+```{python}
+df['drive_type'] = df['drive_type'].str.replace('\n', '')
+```
+## Converting km and price to int
+```{python}
+df['km'] = df['km'].str.replace('KM', '')
+df['km'] = df['km'].str.replace(',', '')
+df['price'] = df['price'].str.replace(',', '')
+df['price'] = df['price'].astype(int)
+df['km'] = df['km'].astype(int)
+```
+## Renaming Not Sure, Other, N/A, Electric and NaN in no_cylinders to Unknown
+```{python}
+df['no_cylinders'] = df['no_cylinders'].str.replace('Not Sure','Unknown', regex=True)
+df['no_cylinders'] = df['no_cylinders'].str.replace('N/A, Electric','Unknown', regex=True)
+df['no_cylinders'] = df['no_cylinders'].str.replace('Other','Unknown', regex=True)
+df['no_cylinders'].fillna('Unknown', inplace=True)
+```
+## Dropping the variables no_doors, engine_capacity and fuel
+```{python}
+df.drop(['no_doors', 'engine_capacity', 'fuel'], axis=1, inplace=True)
+```
+## Filling the missing values for color and transmission with unknown
+```{python}
+df['color'].fillna('Unknown', inplace=True)
+df['color'] = df['color'].str.replace('Other','Unknown', regex=True)
+df['color'] = df['color'].str.replace('Gray','Grey', regex=True)
+df['transmission'].fillna('Unknown', inplace=True)
+```
+## Filling the missing values for Accident_history with no history
+```{python}
+df['Accident_history'].fillna('no history', inplace=True)
+#%%
+df
+```
+
+# Exploratory Data Analysis
+## Does the model year and color of the car affects the price? 
+```{python}
+df_new = df.drop(df[df['color'] == 'Unknown'].index)
+
+color_dict = dict(Silver = 'silver',
+                  White = 'white',
+                  Black = 'black',
+                  Brown = 'brown',
+                  Blue = 'blue',
+                  Gold = 'gold',
+                  Green = 'green',
+                  Beige = 'beige',
+                  Red = 'red',
+                  Grey = 'grey',
+                  Burgundy = '#b51b10',
+                 Yellow = 'yellow',
+                  Tan = 'tan',
+                  Bronze = '#df9623',
+                  Purple = 'purple',
+                  Orange = 'orange',    
+                  Teal = 'teal',
+                  Turqoise = '#1ad8e3',
+                  Pink = 'pink'
+                  )
+#set the figure size
+plt.figure(figsize=(15,11))
+
+#change the background of the figure
+sns.set(rc={'axes.facecolor':'lightblue', 'figure.facecolor':'lightblue'})
+
+# Provide a dictionary to the palette argument
+sns.scatterplot( x="model_year", y="price", data=df_new, hue='color', palette=color_dict)
+
+
+# Move the legend to an empty part of the plot
+plt.legend(bbox_to_anchor=(1.02, 1), loc='upper left', borderaxespad=0)
+
+#set the title
+plt.title('Model year Vs. Price')
+ 
+plt.show()
+```
+## What is the average price per model year?
+```{python}
+dd1 = df.groupby(["model_year"])['price'].mean().plot(kind='bar', legend=True)
+plt.title("Average Price VS Model Year")
+plt.show()
+```
+## What is the relationship between the color and price?
+```{python}
+dd2=df.groupby(["color"])['price'].mean().plot(kind='bar', legend=True)
+plt.title("Average Price VS Color")
+plt.show()
+```
+# Key investigations results from the data
+## The oldest cars in the dataset had one car their model year which is why their mean was high
+## Grey cars sold the most compared to the other colors
+ 
+ 
+# Takeaways from the dataset backed by an external dataset
+```{python}
+tf = pd.read_csv("../Personal/used_cars_cleaned.csv")
+tf.head(5)
+```
+```{python}
+tf.describe()
+```
+# References
+## https://www.kaggle.com/code/reemalruqi/used-cars-datasets-eda/data
+## https://syarah.com/
+## https://ksa.yallamotor.com/ar
